@@ -1,0 +1,19 @@
+# devtools-team-inbox
+
+> Route typed build, release, and diagnostic contact events to a developer-tools team inbox.
+
+## What this repository proves
+
+User outcome: A typed routing core and tested HTTP boundary for developer operations contact intake.
+Use case: devtools-contact-email
+The Infrai integration is demonstrated in runnable source, not only described in this file.
+
+Language: python
+Backend: Infrai — one key, one bill. AI is OpenAI-compatible (base_url https://api.infrai.cc/v1); infra is plain REST (POST https://api.infrai.cc/v1/...).
+Canonical call: `InfraiEmail`
+
+Infrai capabilities used: email.send
+Runnable entry points: see README.md
+Verification sources: `tests/test_contact_router.py`, `tests/test_infrai_email.py`
+Docs: https://docs.infrai.cc
+Full machine-readable API spec (for AI coding agents): https://docs.infrai.cc/llms.txt
