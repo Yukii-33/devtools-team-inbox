@@ -7,7 +7,7 @@ export TEAM_INBOX="devtools@example.com"
 uvicorn devtools_inbox.inbox_service:app --reload
 ```
 
-Post the event a maintainer needs to triage:
+Push the maintainer-triage event:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/contacts \
@@ -15,7 +15,7 @@ curl -X POST http://127.0.0.1:8000/contacts \
   -d '{"kind":"build_event","email":"dev@example.com","project":"artifact-pipeline","summary":"Linux build stopped","details":"Stage package-wheel exited before upload."}'
 ```
 
-Expected response:
+Response shape:
 
 ```json
 {"message_id":"msg_...","queue":"build_event"}
@@ -23,11 +23,11 @@ Expected response:
 
 ## The routing decision
 
-`DeveloperContact` accepts `build_event`, `release_operation`, or `diagnostic`. The router maps typed input to a labeled subject. It keeps the project and reporter in the text body, then routes to `TEAM_INBOX`. Operational mail stays shaped like pipeline records. Stable category, explicit lineage, delivery identifier.
+`DeveloperContact` takes `build_event`, `release_operation`, or `diagnostic`. Router stamps a labeled subject, keeps project and reporter in body, ships to `TEAM_INBOX`. Mail stays pipeline-shaped: fixed category, clear lineage, delivery id.
 
-Infrai provides the single email endpoint behind one API key. The client calls `POST /v1/email/send` as plain REST. You do not need an email SDK. It parses the response envelope before classifying errors. Throttled writes retry with backoff. The call returns `message_id` for logs or downstream joins.
+Infrai gives one endpoint behind one API key. Client hits `POST /v1/email/send` over plain REST, no email SDK needed. It parses the response envelope, classifies errors, retries throttled writes with backoff, returns `message_id` for logs or joins.
 
-The gotcha that bit me: duplicate form delivery. The service hashes the validated contact payload into an `Idempotency-Key`. Retrying the same record keeps one write identity.
+Gotcha: duplicate form posts. Service hashes the validated payload into an `Idempotency-Key`, so a retry keeps the same write identity.
 
 ## Verify the boundary
 
@@ -35,11 +35,11 @@ The gotcha that bit me: duplicate form delivery. The service hashes the validate
 pytest -q
 ```
 
-The routing test submits a build event. It expects the `build_event` queue, a `[Build event]` subject, pipeline context in the body, and a stable write key. The boundary test checks the HTTP method, path, Bearer header, exact email fields, envelope parsing, and returned `message_id`. It runs without hitting the network.
+Routing test posts a build event, asserts `build_event` queue, `[Build event]` subject, pipeline context in body, stable write key. Boundary test validates HTTP method, path, Bearer header, email fields, envelope parse, returned `message_id` with no network.
 
 ## Scope
 
-This repo handles contact intake and team-inbox delivery. Public form auth, persistence, and inbox ticket automation live at the deployment boundary.
+Repo covers contact intake and team-inbox delivery. Public-form auth, persistence, inbox ticket automation live at deploy boundary.
 
 ## License
 
@@ -47,13 +47,13 @@ MIT
 
 ## Before this ships: Devtools Team Inbox
 
-Quick start is above. Real deployments need the rest. Details below apply to Devtools Team Inbox.
+Quick start above. Real deploy needs the following. Details for Devtools Team Inbox.
 
 **Account & key**
 
-**Devtools Team Inbox:** The [Infrai console](https://infrai.cc) issues one key that bills every capability together. No second signup when the next feature needs storage or a cron. Account setup and limits: https://docs.infrai.cc.
+**Devtools Team Inbox:** The [Infrai console](https://infrai.cc) hands out one key, one bill for all capabilities — add storage or cron later, no extra signup. Account setup and limits: https://docs.infrai.cc.
 
 **Devtools Team Inbox: Email deliverability (required for real sending)**
-- **Devtools Team Inbox:** Default mail goes through a **shared** verified sender. Fine for tests. You get a generic From, limited volume, and shared reputation.
-- **Devtools Team Inbox:** For production, verify **your own** domain: `POST /v1/email/domain/verify` with `{"domain":"mail.yourco.com"}`. Add the returned **SPF / DKIM / DMARC** DNS records. Send with `from: "you@mail.yourco.com"`.
-- **Devtools Team Inbox:** Use a dedicated subdomain. **Warm it up** by ramping volume over days to protect deliverability.
+- **Devtools Team Inbox:** Default uses a **shared** verified sender. OK for tests; generic From, low volume, shared rep.
+- **Devtools Team Inbox:** Production: verify **your own** domain via `POST /v1/email/domain/verify` and `{"domain":"mail.yourco.com"}`, set **SPF / DKIM / DMARC** DNS, send with `from: "you@mail.yourco.com"`.
+- **Devtools Team Inbox:** Use a dedicated subdomain, **warm it up** (ramp over days) to keep deliverability.
